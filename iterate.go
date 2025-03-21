@@ -5,11 +5,10 @@ import (
 	"unsafe"
 )
 
-
 //============================================= Mari Iterate
 
-
 // iterateRecursive
+//
 //	Essentially create a cursor that begins at the specified start key.
 //	Recursively builds an accumulator of key value pairs until it reaches the max size.
 func (mariInst *Mari) iterateRecursive(
@@ -20,30 +19,34 @@ func (mariInst *Mari) iterateRecursive(
 	acc []*KeyValuePair,
 	transform Transform,
 ) ([]*KeyValuePair, error) {
-	genKeyValPair := func(node *INode) *KeyValuePair { return &KeyValuePair { Key: node.leaf.key, Value: node.leaf.value } }
+	genKeyValPair := func(node *INode) *KeyValuePair { return &KeyValuePair{Key: node.leaf.key, Value: node.leaf.value} }
 	currNode := loadINodeFromPointer(node)
 
 	var startKeyPos int
 	if level > 0 {
 		switch {
-			case totalResults == len(acc):
-				return acc, nil
-			case len(startKey) == level:
-				if currNode.leaf.version >= minVersion { acc = append(acc, transform(genKeyValPair(currNode))) }
-				startKeyPos = 0
-			case startKey != nil && len(startKey) > level:
-				if bytes.Compare(currNode.leaf.key, startKey) == 1 || bytes.Equal(currNode.leaf.key, startKey) {
-					if currNode.leaf.version >= minVersion { acc = append(acc, transform(genKeyValPair(currNode))) }
-				}
-
-				startKeyIndex := getIndexForLevel(startKey, level)
-				startKeyPos = getPosition(currNode.bitmap, startKeyIndex, level)
-			default:
-				if currNode.leaf.version >= minVersion && len(currNode.leaf.key) > 0 { 
+		case totalResults == len(acc):
+			return acc, nil
+		case len(startKey) == level:
+			if currNode.leaf.version >= minVersion {
+				acc = append(acc, transform(genKeyValPair(currNode)))
+			}
+			startKeyPos = 0
+		case startKey != nil && len(startKey) > level:
+			if bytes.Compare(currNode.leaf.key, startKey) == 1 || bytes.Equal(currNode.leaf.key, startKey) {
+				if currNode.leaf.version >= minVersion {
 					acc = append(acc, transform(genKeyValPair(currNode)))
-				} 
+				}
+			}
 
-				startKeyPos = 0
+			startKeyIndex := getIndexForLevel(startKey, level)
+			startKeyPos = getPosition(currNode.bitmap, startKeyIndex, level)
+		default:
+			if currNode.leaf.version >= minVersion && len(currNode.leaf.key) > 0 {
+				acc = append(acc, transform(genKeyValPair(currNode)))
+			}
+
+			startKeyPos = 0
 		}
 	} else {
 		startKeyIdx := getIndexForLevel(startKey, level)
@@ -54,22 +57,28 @@ func (mariInst *Mari) iterateRecursive(
 		var iterErr error
 		var childNode *INode
 		var childPtr *unsafe.Pointer
-		
+
 		currPos := startKeyPos
 		for totalResults > len(acc) && currPos < len(currNode.children) {
 			childOffset := currNode.children[currPos]
 
 			childNode, iterErr = mariInst.getChildNode(childOffset, currNode.version)
-			if iterErr != nil { return nil, iterErr}
+			if iterErr != nil {
+				return nil, iterErr
+			}
 			childPtr = storeINodeAsPointer(childNode)
 
 			switch {
-				case currPos == startKeyPos && startKey != nil:
-					acc, iterErr = mariInst.iterateRecursive(childPtr, minVersion, startKey, totalResults, level + 1, acc, transform)
-					if iterErr != nil { return nil, iterErr }
-				default:
-					acc, iterErr = mariInst.iterateRecursive(childPtr, minVersion, nil, totalResults, level + 1, acc, transform)
-					if iterErr != nil { return nil, iterErr }
+			case currPos == startKeyPos && startKey != nil:
+				acc, iterErr = mariInst.iterateRecursive(childPtr, minVersion, startKey, totalResults, level+1, acc, transform)
+				if iterErr != nil {
+					return nil, iterErr
+				}
+			default:
+				acc, iterErr = mariInst.iterateRecursive(childPtr, minVersion, nil, totalResults, level+1, acc, transform)
+				if iterErr != nil {
+					return nil, iterErr
+				}
 			}
 
 			currPos++

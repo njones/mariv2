@@ -7,7 +7,6 @@ import (
 	"unsafe"
 )
 
-
 // MMap is the byte array representation of the memory mapped file in memory.
 type MMap []byte
 
@@ -156,7 +155,8 @@ var DefaultPageSize = os.Getpagesize()
 
 // DefaultNodePoolSize is the max number of nodes in the node pool, and the pre-allocated node pool size
 const DefaultNodePoolSize = int64(1000000)
-//	MaxCompactVersion is the maximum default version to increment to before the compaction process
+
+// MaxCompactVersion is the maximum default version to increment to before the compaction process
 const MaxCompactVersion = uint64(1000000)
 
 const (

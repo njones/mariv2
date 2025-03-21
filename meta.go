@@ -6,32 +6,34 @@ import (
 	"unsafe"
 )
 
-
 //============================================= Mari Metadata
 
-
 // initMeta
+//
 //	Initialize and serialize the metadata in a new Mari.
 //	Version starts at 0 and increments, and root offset starts at 24.
 func (mariInst *Mari) initMeta(nextStart uint64) error {
 	newMeta := &MetaData{
-		version: 0,
-		rootOffset: uint64(InitRootOffset),
+		version:         0,
+		rootOffset:      uint64(InitRootOffset),
 		nextStartOffset: nextStart,
 	}
 
 	serializedMeta := newMeta.serializeMetaData()
 	_, flushErr := mariInst.writeMetaToMemMap(serializedMeta)
-	if flushErr != nil { return flushErr }
+	if flushErr != nil {
+		return flushErr
+	}
 	return nil
 }
 
 // loadMetaRootOffsetPointer
+//
 //	Get the uint64 pointer from the memory map.
 func (mariInst *Mari) loadMetaRootOffset() (ptr *uint64, rOff uint64, err error) {
 	defer func() {
 		r := recover()
-		if r != nil { 
+		if r != nil {
 			ptr = nil
 			rOff = 0
 			err = errors.New("error getting root offset from mmap")
@@ -45,11 +47,12 @@ func (mariInst *Mari) loadMetaRootOffset() (ptr *uint64, rOff uint64, err error)
 }
 
 // loadMetaEndMmapPointer
+//
 //	Get the uint64 pointer from the memory map.
 func (mariInst *Mari) loadMetaEndSerialized() (ptr *uint64, sOff uint64, err error) {
 	defer func() {
 		r := recover()
-		if r != nil { 
+		if r != nil {
 			ptr = nil
 			sOff = 0
 			err = errors.New("error getting end of serialized data from mmap")
@@ -63,11 +66,12 @@ func (mariInst *Mari) loadMetaEndSerialized() (ptr *uint64, sOff uint64, err err
 }
 
 // loadMetaVersionPointer
+//
 //	Get the uint64 pointer from the memory map.
 func (mariInst *Mari) loadMetaVersion() (ptr *uint64, v uint64, err error) {
 	defer func() {
 		r := recover()
-		if r != nil { 
+		if r != nil {
 			ptr = nil
 			v = 0
 			err = errors.New("error getting version from mmap")
@@ -81,11 +85,12 @@ func (mariInst *Mari) loadMetaVersion() (ptr *uint64, v uint64, err error) {
 }
 
 // storeMetaPointer
+//
 //	Store the pointer associated with the particular metadata (root offset, end serialized, version) back in the memory map.
 func (mariInst *Mari) storeMetaPointer(ptr *uint64, val uint64) (err error) {
 	defer func() {
 		r := recover()
-		if r != nil { 
+		if r != nil {
 			err = errors.New("error storing meta value in mmap")
 		}
 	}()
@@ -95,20 +100,23 @@ func (mariInst *Mari) storeMetaPointer(ptr *uint64, val uint64) (err error) {
 }
 
 // writeMetaToMemMap
+//
 //	Copy the serialized metadata into the memory map.
 func (mariInst *Mari) writeMetaToMemMap(sMeta []byte) (ok bool, err error) {
 	defer func() {
 		r := recover()
-		if r != nil { 
+		if r != nil {
 			ok = false
 			err = errors.New("error writing metadata to mmap")
 		}
 	}()
 
 	mMap := mariInst.data.Load().(MMap)
-	copy(mMap[MetaVersionIdx:MetaEndSerializedOffset + OffsetSize64], sMeta)
+	copy(mMap[MetaVersionIdx:MetaEndSerializedOffset+OffsetSize64], sMeta)
 
-	flushErr := mariInst.flushRegionToDisk(MetaVersionIdx, MetaEndSerializedOffset + OffsetSize64)
-	if flushErr != nil { return false, flushErr }
+	flushErr := mariInst.flushRegionToDisk(MetaVersionIdx, MetaEndSerializedOffset+OffsetSize64)
+	if flushErr != nil {
+		return false, flushErr
+	}
 	return true, nil
 }
